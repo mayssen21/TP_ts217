@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:pPr><w:pStyle w:val="title"/><w:jc w:val="left"/></w:pPr><w:r><w:t>Initialisation</w:t></w:r></w:p><w:p><w:pPr><w:pStyle w:val="code"/></w:pPr><w:r><w:t><![CDATA[clc
+clear
+close all
+]]></w:t></w:r></w:p><w:p><w:pPr><w:sectPr/></w:pPr></w:p><w:p><w:pPr><w:pStyle w:val="heading"/><w:jc w:val="left"/></w:pPr><w:r><w:t>Paramètres</w:t></w:r></w:p><w:p><w:pPr><w:pStyle w:val="code"/></w:pPr><w:r><w:t><![CDATA[Ns = 5000;      % Nombre de symboles
+Ds = 1e6;       % Débit symbole (1 Msymboles/s)
+Fse = 4;        % Facteur de suréchantillonnage
+Fe = Ds*Fse;    % Fréquence d'échantillonnage (4 MHz)
+alpha = 0.35;   % Rolloff
+SPAN = 8;       % Nombre de périodes symboliques dans le filtre
+Fs = Ds*Fse;    % Fréquence d'échantillonnage = 4 MHz]]></w:t></w:r></w:p><w:p><w:pPr><w:sectPr/></w:pPr></w:p><w:p><w:pPr><w:pStyle w:val="text"/><w:jc w:val="left"/></w:pPr><w:r><w:t>Pour une QPSK, chaque symbole encode 2 bits. donc, pour Ns symboles, on a besoin de 2*Ns bits.</w:t></w:r></w:p><w:p><w:pPr><w:pStyle w:val="code"/></w:pPr><w:r><w:t><![CDATA[%% Génération des symboles QPSK avec mapping de Gray
+bits = randi([0 1], 2*Ns, 1);% vecteur colonne de 2*Ns éléments, chacun vaut 0 ou 1.
+% Mapping de Gray QPSK
+symboles = (1-2*bits(1:2:end)) + 1j*(1-2*bits(2:2:end));
+symboles = symboles / sqrt(2); % Normalisation de l'énergie moyenne à 1]]></w:t></w:r></w:p><w:p><w:pPr><w:pStyle w:val="text"/><w:jc w:val="left"/></w:pPr><w:r><w:t>Maintenant, on crée le filtre RRC, puis on suréchantillonnage et convolue les symboles avec ce filtre pour obtenir le signal émis en bande de base.</w:t></w:r></w:p><w:p><w:pPr><w:pStyle w:val="code"/></w:pPr><w:r><w:t><![CDATA[
+%% Filtre en racine de cosinus surélevé
+h = rcosdesign(alpha, SPAN, Fse, 'sqrt'); % Conception du filtre
+%% Suréchantillonnage des symboles
+symboles_surEch = upsample(symbols, Fse);]]></w:t></w:r></w:p><w:p><w:pPr><w:sectPr/></w:pPr></w:p><w:p><w:pPr><w:pStyle w:val="code"/></w:pPr><w:r><w:t><![CDATA[% Paramètres du canal
+alpha = 1;    % Amplitude du deuxième trajet
+d = 1;        % Retard (en échantillons)
+phi = 0;      % Phase du deuxième trajet
+
+% Création de la réponse impulsionnelle h_n
+h = zeros(1, d + 1);  % Initialisation du vecteur (de taille suffisante)
+h(1) = 1;             % Premier trajet (impulsion)
+h(d + 1) = alpha * exp(1j * phi); % Deuxième trajet
+
+% Normalisation pour assurer que ||h||^2 = 1
+C = sqrt(sum(abs(h).^2)); 
+h = h / C;
+
+% Affichage de la réponse impulsionnelle
+stem(abs(h));
+xlabel('n'); ylabel('|h_n|');
+title('Réponse impulsionnelle du canal à 2 trajets');
+
+% Tracé de la réponse en fréquence
+Nfft = 512; % Taille de la FFT
+H_f = fft(h, Nfft); 
+f = linspace(-0.5, 0.5, Nfft); % Fréquence normalisée
+
+figure;
+plot(f, 20*log10(abs(fftshift(H_f))));
+xlabel('Fréquence normalisée');
+ylabel('Magnitude (dB)');
+title('Réponse en fréquence du canal');
+grid on;]]></w:t></w:r></w:p><w:p><w:pPr><w:sectPr/></w:pPr></w:p><w:p><w:pPr><w:pStyle w:val="heading"/><w:jc w:val="left"/></w:pPr><w:r><w:t>Tester les 5 cas</w:t></w:r></w:p><w:p><w:pPr><w:pStyle w:val="code"/></w:pPr><w:r><w:t><![CDATA[
+]]></w:t></w:r></w:p></w:body></w:document>
